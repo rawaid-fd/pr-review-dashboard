@@ -2,7 +2,8 @@
 
 A local web dashboard that shows open GitHub PRs requesting your review, grouped by repo. Built as a PoC for replacing Slack PR review channels with something easier to scan.
 
-![Dashboard showing PRs grouped by repo with review status badges]()
+<img width="1505" height="1044" alt="Screenshot 2026-03-31 at 5 00 41 PM" src="https://github.com/user-attachments/assets/e1383144-b20f-4318-b2c0-289beb0f646b" />
+
 
 ## Features
 
