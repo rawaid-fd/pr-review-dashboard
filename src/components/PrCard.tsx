@@ -1,8 +1,10 @@
 import type { PullRequest } from "@/types";
+import type { ReviewData } from "@/app/api/reviews/route";
 import { StatusBadge } from "./StatusBadge";
 
 interface PrCardProps {
   pr: PullRequest;
+  reviewData?: ReviewData;
 }
 
 const REVIEW_STATUS_STYLES = {
@@ -12,10 +14,13 @@ const REVIEW_STATUS_STYLES = {
   pending:            { dot: "bg-gray-600",   label: "Awaiting review",    text: "text-gray-500"   },
 };
 
-export function PrCard({ pr }: PrCardProps) {
+export function PrCard({ pr, reviewData }: PrCardProps) {
   const repoName = pr.repo.split("/").pop() ?? pr.repo;
-  const status = REVIEW_STATUS_STYLES[pr.reviewStatus];
-  const { approved, changesRequested } = pr.reviewCounts;
+  const resolvedStatus = reviewData?.reviewStatus ?? pr.reviewStatus;
+  const resolvedCounts = reviewData?.reviewCounts ?? pr.reviewCounts;
+  const status = REVIEW_STATUS_STYLES[resolvedStatus];
+  const { approved, changesRequested } = resolvedCounts;
+  const reviewsLoading = !reviewData;
 
   return (
     <a
@@ -54,13 +59,19 @@ export function PrCard({ pr }: PrCardProps) {
 
       <div className="mt-2 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${status.dot}`} />
-          <span className={`text-xs ${status.text}`}>{status.label}</span>
-          {(approved > 0 || changesRequested > 0) && (
-            <span className="text-xs text-gray-600">
-              ({approved > 0 && <span className="text-green-500">+{approved}</span>}
-              {changesRequested > 0 && <span className="text-red-500"> -{changesRequested}</span>})
-            </span>
+          {reviewsLoading ? (
+            <span className="text-xs text-gray-600 animate-pulse">Loading reviews…</span>
+          ) : (
+            <>
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${status.dot}`} />
+              <span className={`text-xs ${status.text}`}>{status.label}</span>
+              {(approved > 0 || changesRequested > 0) && (
+                <span className="text-xs text-gray-600">
+                  ({approved > 0 && <span className="text-green-500">+{approved}</span>}
+                  {changesRequested > 0 && <span className="text-red-500"> -{changesRequested}</span>})
+                </span>
+              )}
+            </>
           )}
         </div>
         {pr.commentCount > 0 && (

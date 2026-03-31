@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { PullRequest, PillarPrsResponse } from "@/types";
+import type { ReviewData } from "@/app/api/reviews/route";
 import { PrCard } from "./PrCard";
 import { PrCardSkeleton } from "./PrCardSkeleton";
 import { RefreshIndicator } from "./RefreshIndicator";
@@ -49,7 +50,23 @@ function usePinnedRepos() {
 export function ReviewQueue() {
   const [response, setResponse] = useState<PillarPrsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<Record<string, ReviewData>>({});
   const { pinned, toggle } = usePinnedRepos();
+
+  const fetchReviews = useCallback(async (prs: PullRequest[]) => {
+    if (prs.length === 0) return;
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(prs.map((pr) => ({ repo: pr.repo, number: pr.number }))),
+      });
+      const data: Record<string, ReviewData> = await res.json();
+      setReviews(data);
+    } catch {
+      // reviews are non-critical — fail silently
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -57,10 +74,12 @@ export function ReviewQueue() {
       const res = await fetch("/api/queue");
       const json: PillarPrsResponse = await res.json();
       setResponse(json);
+      // Fetch review data as a second non-blocking pass
+      fetchReviews(json.data ?? []);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchReviews]);
 
   useEffect(() => {
     refresh();
@@ -118,7 +137,13 @@ export function ReviewQueue() {
               </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {grouped[repo].map((pr) => <PrCard key={pr.id} pr={pr} />)}
+              {grouped[repo].map((pr) => (
+                <PrCard
+                  key={pr.id}
+                  pr={pr}
+                  reviewData={reviews[`${pr.repo}/${pr.number}`]}
+                />
+              ))}
             </div>
           </section>
         ))
